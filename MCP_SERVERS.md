@@ -16,24 +16,44 @@ The project integrates with the following MCP servers:
 
 ## Configuration
 
-All MCP servers are configured through environment variables in the `.env.local` file. Each server has its own set of configuration variables, including:
+All MCP servers are configured through environment variables in the `.env.local` file. Each server has its own set of configuration variables, which may include:
 
 - Base URL
-- API Key
-- Secret
-- Authentication Token
 - Port
 - Enable/Disable flag
+- API Key (for some servers)
 
-Example configuration for Heroku-MCP:
+### API Key Requirements
+
+Not all MCP servers require API keys:
+
+| MCP Server | API Key Required |
+|------------|------------------|
+| OpenRouter | ✅ Yes |
+| Heroku-MCP | ❌ No |
+| Context7 | ❌ No |
+| Taskmaster (Claude) | ✅ Yes |
+| MagicUI | ✅ Yes |
+| Memory | ❌ No |
+| Knowledge | ❌ No |
+| GitHub MCP | ✅ Yes |
+
+Example configuration for servers that require API keys (e.g., Taskmaster):
+
+```
+# Taskmaster (Claude)
+TASKMASTER_BASE_URL=https://api.taskmaster.example.com
+TASKMASTER_API_KEY=your_taskmaster_api_key
+TASKMASTER_MODEL=anthropic/claude-3-opus-20240229
+ENABLE_TASKMASTER=true
+```
+
+Example configuration for servers that don't require API keys (e.g., Heroku-MCP):
 
 ```
 # Heroku-MCP
 HEROKU_MCP_BASE_URL=https://api.heroku-mcp.example.com
-HEROKU_MCP_API_KEY=your_heroku_mcp_api_key
-HEROKU_MCP_SECRET=your_heroku_mcp_secret
-HEROKU_MCP_AUTH_TOKEN=your_heroku_mcp_auth_token
-HEROKU_MCP_PORT=3001
+# No API key required for Heroku-MCP
 ENABLE_HEROKU_MCP=true
 ```
 
