@@ -10,16 +10,17 @@
     "start": "next start",
     "lint": "next lint",
 
-    "start:mcp-servers": "node scripts/start-mcp-servers.js",
-    "start:heroku-mcp": "echo 'Starting Heroku-MCP server on port' $HEROKU_MCP_PORT",
-    "start:context7": "echo 'Starting Context7 server on port' $CONTEXT7_PORT",
-    "start:taskmaster": "echo 'Starting Taskmaster (Claude) server on port' $TASKMASTER_PORT",
-    "start:magicui": "echo 'Starting MagicUI server on port' $MAGICUI_PORT",
-    "start:memory": "echo 'Starting Memory server on port' $MEMORY_PORT",
-    "start:knowledge": "echo 'Starting Knowledge server on port' $KNOWLEDGE_PORT",
-    "start:github-mcp": "echo 'Starting GitHub MCP server on port' $GITHUB_MCP_PORT",
+    "start:mcp-servers": "node scripts/start-all-mcp-servers.js",
+    "start:heroku-mcp": "node scripts/mcp-server.js heroku-mcp",
+    "start:context7": "node scripts/mcp-server.js context7",
+    "start:taskmaster": "node scripts/mcp-server.js taskmaster",
+    "start:magicui": "node scripts/mcp-server.js magicui",
+    "start:memory": "node scripts/mcp-server.js memory",
+    "start:knowledge": "node scripts/mcp-server.js knowledge",
+    "start:github-mcp": "node scripts/mcp-server.js github-mcp",
 
-    "dev:with-mcp": "concurrently \"npm run start:mcp-servers\" \"npm run dev\""
+    "dev:with-mcp": "concurrently \"npm run start:mcp-servers\" \"npm run dev\"",
+    "verify:mcp-servers": "node scripts/verify-mcp-servers.js"
   },
   "dependencies": {
     "react": "^19.0.0",
