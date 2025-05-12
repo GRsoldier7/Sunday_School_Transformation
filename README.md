@@ -12,6 +12,7 @@ This project integrates with the following MCP servers:
 4. **MagicUI**: UI component library and design system
 5. **Memory**: Data storage and retrieval system
 6. **Knowledge**: Knowledge base and information management system
+7. **GitHub MCP**: GitHub integration and CI/CD management
 
 ## Getting Started
 
@@ -62,13 +63,52 @@ This project integrates with several MCP (Master Control Program) servers:
 6. **Knowledge**: Knowledge base and information management system
 7. **GitHub MCP**: GitHub integration and CI/CD management
 
+#### Starting MCP Servers
+
 To start all MCP servers at once:
 
 ```bash
 npm run start:mcp-servers
 ```
 
-For more information about MCP servers, see [MCP_SERVERS.md](MCP_SERVERS.md).
+To start individual MCP servers:
+
+```bash
+npm run start:heroku-mcp
+npm run start:context7
+npm run start:taskmaster
+npm run start:magicui
+npm run start:memory
+npm run start:knowledge
+npm run start:github-mcp
+```
+
+#### Verifying MCP Servers
+
+To verify that all MCP servers are running correctly:
+
+```bash
+npm run verify:mcp-servers
+```
+
+This will check if all servers are accessible and their APIs are working properly.
+
+#### API Key Requirements
+
+Not all MCP servers require API keys:
+
+| MCP Server | API Key Required |
+|------------|------------------|
+| OpenRouter | ✅ Yes |
+| Heroku-MCP | ❌ No |
+| Context7 | ❌ No |
+| Taskmaster (Claude) | ✅ Yes |
+| MagicUI | ✅ Yes |
+| Memory | ❌ No |
+| Knowledge | ❌ No |
+| GitHub MCP | ✅ Yes |
+
+For more detailed information about MCP servers, see [MCP_SERVERS.md](MCP_SERVERS.md).
 
 ### Development
 
@@ -128,7 +168,10 @@ sunday-school-transformation/
 │   └── utils/               # Utility functions
 │       └── port-scanner.ts  # Port scanning utility
 ├── scripts/                 # Helper scripts
-│   └── scan-ports.js        # Port scanning script
+│   ├── scan-ports.js        # Port scanning script
+│   ├── mcp-server.js        # Individual MCP server implementation
+│   ├── start-all-mcp-servers.js # Script to start all MCP servers
+│   ├── verify-mcp-servers.js # Script to verify MCP servers are running
 ├── public/                  # Static assets
 ├── .env.local.example       # Example environment variables
 ├── next.config.js           # Next.js configuration
