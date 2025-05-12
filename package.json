@@ -3,15 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "scan-ports": "node scripts/scan-ports.js",
+    "predev": "npm run scan-ports",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+
+    "start:mcp-servers": "node scripts/start-mcp-servers.js",
+    "start:heroku-mcp": "echo 'Starting Heroku-MCP server on port' $HEROKU_MCP_PORT",
+    "start:context7": "echo 'Starting Context7 server on port' $CONTEXT7_PORT",
+    "start:taskmaster": "echo 'Starting Taskmaster (Claude) server on port' $TASKMASTER_PORT",
+    "start:magicui": "echo 'Starting MagicUI server on port' $MAGICUI_PORT",
+    "start:memory": "echo 'Starting Memory server on port' $MEMORY_PORT",
+    "start:knowledge": "echo 'Starting Knowledge server on port' $KNOWLEDGE_PORT",
+    "start:github-mcp": "echo 'Starting GitHub MCP server on port' $GITHUB_MCP_PORT",
+
+    "dev:with-mcp": "concurrently \"npm run start:mcp-servers\" \"npm run dev\""
   },
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.3.2"
+    "next": "15.3.2",
+    "dotenv": "^16.3.1",
+    "chalk": "^4.1.2"
   },
   "devDependencies": {
     "typescript": "^5",
@@ -22,6 +37,7 @@
     "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
-    "@eslint/eslintrc": "^3"
+    "@eslint/eslintrc": "^3",
+    "concurrently": "^8.2.2"
   }
 }
