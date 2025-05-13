@@ -169,10 +169,31 @@ function addSection(body, heading, content) {
 
 /**
  * Creates a menu item to run the script manually.
+ * This function is automatically called when the spreadsheet is opened.
  */
-function onOpen() {
+function onOpen(e) {
+  // Use the event object if available, otherwise use SpreadsheetApp
+  const ui = (e && e.source) ? e.source.getUi() : SpreadsheetApp.getUi();
+
+  // Create a custom menu
+  ui.createMenu('Bible Study')
+    .addItem('Update Newsletter Tab', 'updateNewsletterTab')
+    .addToUi();
+
+  // Log that the menu was created
+  Logger.log('Bible Study menu created');
+}
+
+/**
+ * Alternative function to create the menu.
+ * You can run this manually if the onOpen function doesn't work.
+ */
+function createMenu() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('Bible Study')
     .addItem('Update Newsletter Tab', 'updateNewsletterTab')
     .addToUi();
+
+  // Show a message to confirm the menu was created
+  ui.alert('Bible Study menu created successfully!');
 }
