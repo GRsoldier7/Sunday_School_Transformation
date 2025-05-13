@@ -78,17 +78,29 @@ bible-study-tracker/
 │   ├── app.py              # Main Flask application
 │   ├── services/           # Backend services
 │   └── utils/              # Utility functions
+├── docs/                   # Documentation
+│   ├── google-doc-data-mapping.md # Google Sheet to Google Doc data mapping
+│   └── google-doc-newsletter-template.md # Google Doc newsletter template design
+├── fonts/                  # Fonts for verse images
 ├── services/               # Shared services
 │   ├── ai/                 # AI integration services
 │   │   └── find-best-verse.js # Script to find the best verse
+│   ├── google-docs/        # Google Docs integration
+│   │   └── generate_newsletter.py # Generate Google Doc newsletter
 │   ├── google-sheets/      # Google Sheets integration
 │   │   ├── index.js        # Main Google Sheets service
 │   │   └── update_with_verse_image.js # Update spreadsheet with verse image
 │   └── image/              # Image processing services
-│       └── create_verse_overlay.py # Create verse overlay on image
+│       ├── create_verse_overlay.py # Create verse overlay on image
+│       └── create_elegant_verse.py # Create elegant verse image
 ├── mcp-servers/            # MCP server implementations
 ├── .env                    # Environment variables
+├── create_complete_bible_study.sh # Script to run the complete Bible study process
+├── create_newsletter.sh    # Script to generate Google Doc newsletter
+├── create_social_graphic.py # Script to create social graphic with verse overlay
 ├── create_verse_image_and_update_sheet.sh # Script to create verse image and update sheet
+├── create_verse_image_with_unsplash.sh # Script to create verse image with Unsplash images
+├── fetch_unsplash_image.py # Script to fetch images from Unsplash
 └── verse-info.json         # Information about the selected verse
 ```
 
@@ -180,7 +192,7 @@ The application creates beautiful images with Bible verses overlaid on relevant 
 ### Image Generation Process
 
 1. **Verse Selection**: The system identifies the most representative verse using AI
-2. **Background Selection**: A suitable background image is selected
+2. **Background Selection**: A suitable background image is selected from Unsplash
 3. **Text Overlay**: The verse text is overlaid on the image using Pillow
 4. **Image Saving**: The image is saved to the desktop and project directory
 5. **Spreadsheet Update**: The Google Sheet is updated with information about the image
@@ -190,7 +202,7 @@ The application creates beautiful images with Bible verses overlaid on relevant 
 The application supports different styles for verse images:
 - **Elegant**: Uses script fonts for highlighted text and serif fonts for normal text
 - **Bold**: Uses bold fonts with larger text sizes
-- **Normal**: Uses standard fonts with a clean layout
+- **Modern**: Uses modern sans-serif fonts with a clean layout
 
 ### Text Formatting
 
@@ -201,7 +213,11 @@ The verse text is formatted with different styles:
 
 ### Running the Image Generation
 
-To create a verse image and update the spreadsheet:
+There are multiple scripts available for image generation:
+
+#### Basic Verse Image Generation
+
+To create a basic verse image and update the spreadsheet:
 ```bash
 ./create_verse_image_and_update_sheet.sh
 ```
@@ -210,6 +226,68 @@ This script:
 1. Installs required Python packages
 2. Runs `services/image/create_verse_overlay.py` to create the image
 3. Runs `services/google-sheets/update_with_verse_image.js` to update the spreadsheet
+
+#### Verse Image Generation with Unsplash
+
+To create a verse image using Unsplash images and update the spreadsheet:
+```bash
+./create_verse_image_with_unsplash.sh
+```
+
+This script:
+1. Installs required Python packages
+2. Downloads required fonts if they don't exist
+3. Fetches images from Unsplash based on the verse reference
+4. Runs `create_social_graphic.py` to create the image with text overlay
+5. Runs `services/google-sheets/update_with_verse_image.js` to update the spreadsheet
+
+## Google Doc Newsletter Generation
+
+The application can generate professionally formatted Google Doc newsletters from the Bible study data.
+
+### Newsletter Generation Process
+
+1. **Data Retrieval**: The system retrieves data from the Google Sheet
+2. **Document Creation**: A new Google Doc is created with the title from the `Verses Covered` column
+3. **Image Insertion**: The verse image is inserted at the top of the document
+4. **Content Formatting**: The content is formatted according to the template design
+5. **Document Sharing**: The document is shared with the specified users
+
+### Newsletter Template Design
+
+The newsletter follows a professional template design with the following sections:
+
+1. **Document Title**: The title of the document is the scripture reference
+2. **Image Section**: The verse image is displayed at the top of the document
+3. **Prayer Requests**: Prayer requests related to the Bible study
+4. **Key Verse of the Study**: The most representative verse from the scripture passage
+5. **Scripture(s) Covered**: The scripture references covered in the study
+6. **Bible Study Message**: A summary of the Bible study message
+7. **Looking Ahead**: Information about the next Bible study session
+8. **Prayer Focus**: A prayer related to the Bible study topic
+
+### Running the Newsletter Generation
+
+To generate a Google Doc newsletter:
+```bash
+./create_newsletter.sh
+```
+
+This script:
+1. Installs required Python packages
+2. Runs `services/google-docs/generate_newsletter.py` to create the Google Doc
+
+### Complete Bible Study Process
+
+To run the complete Bible study process (verse image generation and newsletter creation):
+```bash
+./create_complete_bible_study.sh
+```
+
+This script:
+1. Creates a verse image using Unsplash images
+2. Generates a Google Doc newsletter
+3. Updates the Google Sheet with the information
 
 ## MCP Server Integration
 
@@ -339,6 +417,18 @@ npm run dev
 ./create_verse_image_and_update_sheet.sh
 ```
 
+### Generating Google Doc Newsletters
+
+```bash
+./create_newsletter.sh
+```
+
+### Running the Complete Bible Study Process
+
+```bash
+./create_complete_bible_study.sh
+```
+
 ## Future Enhancements
 
 1. **Enhanced Image Generation**:
@@ -356,7 +446,13 @@ npm run dev
    - Add support for uploading audio recordings for transcription
    - Implement a preview feature for verse images
 
-4. **Integration Enhancements**:
+4. **Newsletter Enhancements**:
+   - Add support for custom templates
+   - Implement email delivery of newsletters
+   - Add support for PDF export
+   - Implement automatic scheduling of newsletter generation
+
+5. **Integration Enhancements**:
    - Add integration with Bible APIs for verse lookup and cross-references
    - Implement integration with popular Bible study tools
    - Add support for exporting content to different formats
@@ -379,6 +475,11 @@ npm run dev
    - Ensure that Pillow is correctly installed
    - Verify that the required fonts are available on your system
    - Check that the output directories are writable
+
+4. **Google Docs API Issues**:
+   - Ensure that the Google Docs API is enabled in the Google Cloud Console
+   - Verify that the service account has permission to create and edit documents
+   - Check that the required scopes are included in the credentials
 
 ## Contributing
 
