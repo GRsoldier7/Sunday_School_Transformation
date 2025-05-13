@@ -266,9 +266,15 @@ The newsletter follows a professional template design with the following section
 7. **Looking Ahead**: Information about the next Bible study session
 8. **Prayer Focus**: A prayer related to the Bible study topic
 
-### Running the Newsletter Generation
+### Implementation Approaches
 
-To generate a Google Doc newsletter:
+There are two ways to implement the newsletter generation:
+
+#### 1. Python Script Approach
+
+This approach uses the Google Docs API with Python to create standalone documents or update existing documents.
+
+To generate a Google Doc newsletter using the Python script:
 ```bash
 ./create_newsletter.sh
 ```
@@ -276,6 +282,21 @@ To generate a Google Doc newsletter:
 This script:
 1. Installs required Python packages
 2. Runs `services/google-docs/generate_newsletter.py` to create the Google Doc
+
+#### 2. Google Apps Script Approach (Recommended for Tabs)
+
+This approach uses Google Apps Script to directly update tab documents within a master Google Doc. It provides better integration with the Google Docs environment and can directly access and modify tab documents.
+
+To use the Google Apps Script approach:
+1. Open the Google Sheet at https://docs.google.com/spreadsheets/d/10Gp6sQ5O211mHs03dAgUhu0fciXyWU0HtG2Jia8aNO0/edit
+2. From the menu, select 'Extensions' > 'Apps Script'
+3. Copy and paste the code from `services/google-docs/update_newsletter_tab.js` into the Apps Script editor
+4. Save the script (File > Save)
+5. Run the 'onOpen' function once to create the menu (select 'onOpen' from the dropdown and click Run)
+6. Go back to the spreadsheet and refresh the page
+7. You should now see a 'Bible Study' menu in the menu bar
+8. Click on 'Bible Study' > 'Update Newsletter Tab' to run the script
+9. The script will update the tab document with the content and image
 
 ### Complete Bible Study Process
 
