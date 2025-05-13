@@ -497,34 +497,41 @@ def generate_newsletter(spreadsheet_id, row_index, target_doc_id=None):
     print(f"Newsletter document generated successfully: https://docs.google.com/document/d/{doc_id}/edit")
     return doc_id
 
-def create_standalone_document(title, data):
-    """Create a standalone document with the newsletter content and make it publicly accessible."""
+def update_document_tab(doc_id, tab_title, data):
+    """Update content in an existing document tab."""
     creds = get_credentials()
     docs_service = build('docs', 'v1', credentials=creds)
     drive_service = build('drive', 'v3', credentials=creds)
 
-    # Create a new document
     try:
-        document = docs_service.documents().create(body={
-            'title': title
-        }).execute()
-        doc_id = document.get('documentId')
-        print(f"Created document with title: {title}")
-        print(f"Document ID: {doc_id}")
+        # Get the document to find the end index
+        document = docs_service.documents().get(documentId=doc_id).execute()
+        print(f"Successfully accessed document: {document.get('title')}")
 
-        # Make the document publicly accessible
-        try:
-            drive_service.permissions().create(
-                fileId=doc_id,
-                body={
-                    'type': 'anyone',
-                    'role': 'reader',
-                    'allowFileDiscovery': False
-                }
-            ).execute()
-            print(f"Made document publicly accessible")
-        except Exception as e:
-            print(f"Error making document publicly accessible: {e}")
+        # Clear the document content
+        end_index = document.get('body').get('content')[-1].get('endIndex')
+        if end_index > 1:
+            print(f"Clearing existing content in document {doc_id}...")
+            try:
+                docs_service.documents().batchUpdate(
+                    documentId=doc_id,
+                    body={
+                        'requests': [
+                            {
+                                'deleteContentRange': {
+                                    'range': {
+                                        'startIndex': 1,
+                                        'endIndex': end_index - 1
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ).execute()
+                print("Document content cleared successfully")
+            except Exception as e:
+                print(f"Error clearing document content: {e}")
+                print("Continuing with existing content...")
 
         # Format the document with the newsletter content
         format_document(doc_id, data)
@@ -538,10 +545,44 @@ def create_standalone_document(title, data):
                 print(f"Error inserting image: {e}")
                 print("Continuing without image...")
 
-        print(f"Created and formatted standalone document: https://docs.google.com/document/d/{doc_id}/edit")
-        return doc_id
+        print(f"Updated document tab: https://docs.google.com/document/d/{doc_id}/edit")
+        return True
     except Exception as e:
-        print(f"Error creating standalone document: {e}")
+        print(f"Error updating document tab: {e}")
+        return False
+
+def find_or_create_tab_document(target_doc_id, tab_title):
+    """Find an existing tab document or create a new one."""
+    creds = get_credentials()
+    drive_service = build('drive', 'v3', credentials=creds)
+
+    try:
+        # Get the properties of the target document
+        file = drive_service.files().get(
+            fileId=target_doc_id,
+            fields='properties'
+        ).execute()
+
+        # Check if the document has properties
+        properties = file.get('properties', {})
+        tabs_json = properties.get('tabs', '[]')
+
+        # Parse the tabs JSON
+        try:
+            tabs = json.loads(tabs_json)
+        except:
+            tabs = []
+
+        # Look for an existing tab with the same title
+        for tab in tabs:
+            if tab.get('title') == tab_title:
+                print(f"Found existing tab '{tab_title}' in document")
+                return tab.get('documentId')
+
+        print(f"No existing tab found with title '{tab_title}'")
+        return None
+    except Exception as e:
+        print(f"Error finding tab document: {e}")
         return None
 
 def main():
@@ -573,14 +614,20 @@ def main():
     # Get the title from the Verses Covered column
     title = row_data.get('Verses Covered', f'Bible Study - {datetime.now().strftime("%Y-%m-%d")}')
 
-    # Create a standalone document
-    doc_id = create_standalone_document(title, row_data)
+    # Target document ID (the document where tabs will be created)
+    target_doc_id = "1kchm4o3FMugKpgBTfedjrPND44Mz0W4y2e0wabCnwEo"
 
-    if doc_id:
-        print(f"Successfully created standalone document for '{title}'")
-        print(f"Document URL: https://docs.google.com/document/d/{doc_id}/edit")
+    # The specific tab document ID for "Romans 9:30-10:21"
+    tab_doc_id = "1ajkbv0t3Ri6igCKBtR1H_0KGzc-HQCjICszJAfGqhSc"
+
+    # Update the existing tab document
+    success = update_document_tab(tab_doc_id, title, row_data)
+
+    if success:
+        print(f"Successfully updated tab document for '{title}'")
+        print(f"Document URL: https://docs.google.com/document/d/{tab_doc_id}/edit")
     else:
-        print(f"Failed to create standalone document")
+        print(f"Failed to update tab document")
         sys.exit(1)
 
 if __name__ == "__main__":
