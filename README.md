@@ -1,14 +1,39 @@
-# Bible Study Sermon Tracker, Image Generator & Email Digest
+# Bible Study Tracker
 
-A comprehensive application for tracking Bible study sessions, generating AI-enhanced content, creating verse images, and sending email digests.
+A comprehensive platform for managing, enhancing, and sharing Bible study sessions using cutting-edge AI technology and integration with Google Sheets.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Data Flow](#data-flow)
+- [Google Sheets Integration](#google-sheets-integration)
+- [AI Integration](#ai-integration)
+- [Verse Image Generation](#verse-image-generation)
+- [Email Digest](#email-digest)
+- [MCP Server Integration](#mcp-server-integration)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Development Workflow](#development-workflow)
+- [Future Enhancements](#future-enhancements)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Overview
+
+The Bible Study Tracker is a modern application designed to transform the way Bible study sessions are recorded, enhanced, and shared. It leverages AI technology to generate insightful summaries, identifies key verses, creates beautiful verse images, and compiles comprehensive email digests. The application integrates with Google Sheets as its primary data store, making it accessible and easy to use for non-technical users.
 
 ## Features
 
-- **Session Tracking**: Record and organize Bible study sessions with date, scripture, transcription, and PLAUD AI synopsis.
-- **AI Content Generation**: Automatically generate summaries, enhanced commentaries, and next session previews using OpenRouter AI.
+- **Session Tracking**: Record and organize Bible study sessions with date, scripture, transcription, and AI-generated summaries.
+- **AI Content Generation**: Automatically generate summaries, key takeaways, discussion questions, and next session previews using OpenRouter AI.
 - **Verse Image Generation**: Create beautiful images with Bible verses overlaid on relevant backgrounds from Pexels.
 - **Email Digest**: Compile and send comprehensive email digests with all session content.
-- **MCP Server Integration**: Leverage multiple MCP servers for enhanced functionality.
+- **Google Sheets Integration**: Store all data in Google Sheets for easy access and editing.
+- **MCP Server Integration**: Leverage multiple MCP (Master Control Program) servers for enhanced functionality.
 
 ## Architecture
 
@@ -27,149 +52,338 @@ A comprehensive application for tracking Bible study sessions, generating AI-enh
 - **Google Integration**: Google Sheets API
 - **External APIs**: OpenRouter, Pexels
 
-### MCP Servers
+### Data Storage
 
-This project integrates with the following MCP (Master Control Program) servers:
+- **Primary Database**: Google Sheets
+  - Spreadsheet URL: https://docs.google.com/spreadsheets/d/10Gp6sQ5O211mHs03dAgUhu0fciXyWU0HtG2Jia8aNO0/edit
+  - Sheet Structure:
+    - Bible Studies: Main sheet for tracking study sessions
+    - Columns:
+      - Date: Date of the Bible study session
+      - Teacher: Name of the teacher/leader
+      - Scripture: Bible passage covered (e.g., "Romans 9:30-10:21")
+      - Picture: Information about the verse image
+      - Category: Theological categories (e.g., "Soteriology, Faith vs. Works")
+      - Transcript: Full transcript of the session
+      - AI Meeting Summary: AI-generated summary of the session
+      - Key Takeaways: Important points from the session
+      - Discussion Questions: Questions for further study
+      - Ready?: Status of the entry (e.g., "ready", "processing")
 
-1. **Context7**: For managing user preferences and session context
-2. **Taskmaster (Claude)**: For AI task orchestration and fallback processing
-3. **MagicUI**: For UI component templates and design system
-4. **Memory**: For caching API responses and session data
-5. **Knowledge**: For Bible reference information and resources
-6. **GitHub MCP**: For repository management and CI/CD
+## Project Structure
+
+```
+bible-study-tracker/
+├── backend/                # Flask backend
+│   ├── app.py              # Main Flask application
+│   ├── services/           # Backend services
+│   └── utils/              # Utility functions
+├── services/               # Shared services
+│   ├── ai/                 # AI integration services
+│   │   └── find-best-verse.js # Script to find the best verse
+│   ├── google-sheets/      # Google Sheets integration
+│   │   ├── index.js        # Main Google Sheets service
+│   │   └── update_with_verse_image.js # Update spreadsheet with verse image
+│   └── image/              # Image processing services
+│       └── create_verse_overlay.py # Create verse overlay on image
+├── mcp-servers/            # MCP server implementations
+├── .env                    # Environment variables
+├── create_verse_image_and_update_sheet.sh # Script to create verse image and update sheet
+└── verse-info.json         # Information about the selected verse
+```
+
+## Data Flow
+
+1. **Session Recording**:
+   - Bible study sessions are recorded and transcribed
+   - Session details are entered into the Google Sheet
+
+2. **AI Processing**:
+   - The system reads the transcript and scripture from the Google Sheet
+   - OpenRouter AI generates a summary, key takeaways, and discussion questions
+   - AI identifies the most representative verse from the scripture passage
+
+3. **Verse Image Generation**:
+   - The system selects an appropriate background image
+   - The verse text is overlaid on the image using Pillow
+   - The image is saved to the desktop and project directory
+   - The Google Sheet is updated with information about the image
+
+4. **Email Digest**:
+   - The system compiles all session content into an email digest
+   - The digest is sent to subscribers
+
+## Google Sheets Integration
+
+The application uses Google Sheets as its primary data store. The integration is handled by the `services/google-sheets/index.js` module.
+
+### Spreadsheet Structure
+
+- **URL**: https://docs.google.com/spreadsheets/d/10Gp6sQ5O211mHs03dAgUhu0fciXyWU0HtG2Jia8aNO0/edit
+- **Sheet Name**: Bible Studies
+- **Columns**:
+  - A: Date (e.g., "2025.05.11")
+  - B: Teacher (e.g., "Kerri")
+  - C: Scripture (e.g., "Romans 9:30-10:21")
+  - D: Picture (Information about the verse image)
+  - E: Category (e.g., "Soteriology, Faith vs. Works")
+  - F: Transcript (Full transcript of the session)
+  - G: AI Meeting Summary (AI-generated summary)
+  - H: Key Takeaways (Important points)
+  - I: Discussion Questions (Questions for further study)
+  - J: Ready? (Status of the entry)
+
+### Authentication
+
+The application uses a Google Service Account for authentication:
+- Service account credentials are stored in `services/google-sheets/service-account.json`
+- The Google Sheet must be shared with the service account email
+
+### Key Functions
+
+- `readSheet(range)`: Read data from a specific range in the sheet
+- `writeSheet(range, values)`: Write data to a specific range in the sheet
+- `appendSheet(range, values)`: Append data to a sheet
+- `clearSheet(range)`: Clear data from a specific range
+
+## AI Integration
+
+The application uses OpenRouter to generate AI content for Bible study sessions.
+
+### OpenRouter Configuration
+
+- **API Key**: Stored in `.env` file as `OPENROUTER_API_KEY`
+- **Default Model**: anthropic/claude-3-opus-20240229
+- **Fallback Model**: anthropic/claude-3-sonnet-20240229
+
+### AI Content Generation
+
+The AI generates the following content:
+1. **Meeting Summaries**: Concise summaries of the Bible study session
+2. **Key Takeaways**: Important points from the session
+3. **Discussion Questions**: Thought-provoking questions for further study
+4. **Best Verse**: The most representative verse from the scripture passage
+
+### Finding the Best Verse
+
+The `services/ai/find-best-verse.js` module uses OpenRouter to identify the most representative verse from the scripture passage:
+
+1. The script reads the transcript and summary from the Google Sheet
+2. It sends a prompt to OpenRouter asking for the most important verse
+3. OpenRouter returns the verse reference, text, and explanation
+4. The information is saved to `verse-info.json`
+
+## Verse Image Generation
+
+The application creates beautiful images with Bible verses overlaid on relevant backgrounds.
+
+### Image Generation Process
+
+1. **Verse Selection**: The system identifies the most representative verse using AI
+2. **Background Selection**: A suitable background image is selected
+3. **Text Overlay**: The verse text is overlaid on the image using Pillow
+4. **Image Saving**: The image is saved to the desktop and project directory
+5. **Spreadsheet Update**: The Google Sheet is updated with information about the image
+
+### Image Styles
+
+The application supports different styles for verse images:
+- **Elegant**: Uses script fonts for highlighted text and serif fonts for normal text
+- **Bold**: Uses bold fonts with larger text sizes
+- **Normal**: Uses standard fonts with a clean layout
+
+### Text Formatting
+
+The verse text is formatted with different styles:
+- **Normal Text**: Regular text for most of the verse
+- **Highlight Text**: Emphasized text for key parts of the verse
+- **Reference Text**: Smaller text for the verse reference
+
+### Running the Image Generation
+
+To create a verse image and update the spreadsheet:
+```bash
+./create_verse_image_and_update_sheet.sh
+```
+
+This script:
+1. Installs required Python packages
+2. Runs `services/image/create_verse_overlay.py` to create the image
+3. Runs `services/google-sheets/update_with_verse_image.js` to update the spreadsheet
+
+## MCP Server Integration
+
+The application integrates with multiple MCP (Master Control Program) servers for enhanced functionality:
+
+| MCP Server | Purpose | API Key Required | Status |
+|------------|---------|------------------|--------|
+| Context7 | Managing user preferences and session context | No | Implemented |
+| Taskmaster (Claude) | AI task orchestration and fallback processing | Yes | Implemented |
+| MagicUI | UI component templates and design system | Yes | Implemented |
+| Memory | Caching API responses and session data | No | Implemented |
+| Knowledge | Bible reference information and resources | No | Implemented |
+| GitHub MCP | Repository management and CI/CD | Yes | Implemented |
+
+### MCP Server Configuration
+
+MCP servers are configured in the `.env` file:
+```
+# MCP Server Configuration
+CONTEXT7_BASE_URL=http://localhost:3002
+ENABLE_CONTEXT7=true
+
+TASKMASTER_BASE_URL=http://localhost:3003
+TASKMASTER_API_KEY=your_taskmaster_api_key
+ENABLE_TASKMASTER=true
+
+MAGICUI_BASE_URL=http://localhost:3004
+MAGICUI_API_KEY=your_magicui_api_key
+ENABLE_MAGICUI=true
+
+MEMORY_BASE_URL=http://localhost:3005
+ENABLE_MEMORY=true
+
+KNOWLEDGE_BASE_URL=http://localhost:3006
+ENABLE_KNOWLEDGE=true
+
+GITHUB_MCP_BASE_URL=http://localhost:3007
+GITHUB_MCP_API_KEY=your_github_mcp_api_key
+ENABLE_GITHUB_MCP=true
+```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v18+)
-- Python (v3.8+)
-- Google account with access to Google Sheets API
-- API keys for:
-  - OpenRouter
-  - Pexels
+- Node.js 18.x or higher
+- Python 3.9 or higher
+- Google Cloud account with Google Sheets API enabled
+- OpenRouter API key for AI functionality
+- Pexels API key for image search (optional)
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/bible-study-tracker.git
-   cd bible-study-tracker
+   git clone https://github.com/GRsoldier7/Sunday_School_Transformation.git
+   cd Sunday_School_Transformation/bible-study-tracker
    ```
 
-2. Install frontend dependencies:
+2. Install backend dependencies:
    ```bash
-   cd frontend
-   npm install
-   ```
-
-3. Install backend dependencies:
-   ```bash
-   cd ../backend
+   cd backend
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
+   cd ..
    ```
 
-4. Set up environment variables:
-   - Create a `.env` file in the backend directory based on `.env.example`
-   - Create a `.env.local` file in the frontend directory based on `.env.local.example`
-
-5. Set up Google Sheets:
-   - Create a Google Sheet with the required columns
-   - Set up Google API credentials and save as `credentials.json` in the backend directory
-
-### Running the Application
-
-1. Start the backend:
+3. Install service dependencies:
    ```bash
-   cd backend
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   python app.py
+   npm install
    ```
 
-2. Start the frontend:
-   ```bash
-   cd frontend
-   npm run dev
+## Configuration
+
+1. Create a `.env` file in the root directory:
+   ```
+   # Google Sheets Configuration
+   GOOGLE_SHEETS_SPREADSHEET_ID=10Gp6sQ5O211mHs03dAgUhu0fciXyWU0HtG2Jia8aNO0
+   GOOGLE_SHEETS_SERVICE_ACCOUNT_PATH=./services/google-sheets/service-account.json
+
+   # OpenRouter Configuration
+   OPENROUTER_API_KEY=your_openrouter_api_key
+   OPENROUTER_API_URL=https://openrouter.ai/api/v1
+   OPENROUTER_DEFAULT_MODEL=anthropic/claude-3-opus-20240229
+   OPENROUTER_FALLBACK_MODEL=anthropic/claude-3-sonnet-20240229
+
+   # Pexels API Configuration (optional)
+   PEXELS_API_KEY=your_pexels_api_key
    ```
 
-3. Start MCP servers:
-   ```bash
-   npm run start:mcp-servers
-   ```
+2. Set up Google Sheets Service Account:
+   - Create a service account in Google Cloud Console
+   - Download the service account key as JSON
+   - Save it to `services/google-sheets/service-account.json`
+   - Share your Google Sheet with the service account email
 
-4. Open your browser and navigate to `http://localhost:3000`
+## Development Workflow
 
-## MCP Server Integration
+The project follows the Vibe Coding Rulebook for development:
 
-### Context7
+1. **Planning Phase**: Define requirements, create user stories, design architecture
+2. **Setup Phase**: Initialize project, set up environment, configure MCP servers
+3. **Development Phase**: Implement features, conduct code reviews, maintain documentation
+4. **Testing Phase**: Unit testing, integration testing, system testing, user acceptance testing
+5. **Deployment Phase**: Prepare environment, deploy to staging, conduct final tests, deploy to production
+6. **Maintenance Phase**: Monitor performance, address issues, implement improvements, gather feedback
 
-Used for:
-- Storing user preferences
-- Managing session context
-- Tracking user interaction patterns
+### Running the Backend
 
-### Taskmaster (Claude)
+```bash
+cd backend
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+flask run
+```
 
-Used for:
-- Orchestrating AI processing tasks
-- Managing fallback processing when primary AI fails
-- Scheduling and monitoring automated tasks
+### Running the Frontend
 
-### MagicUI
+```bash
+cd frontend
+npm run dev
+```
 
-Used for:
-- Providing UI component templates
-- Managing design system
-- Generating responsive layouts
+### Creating Verse Images
 
-### Memory
+```bash
+./create_verse_image_and_update_sheet.sh
+```
 
-Used for:
-- Caching API responses
-- Storing session data for quick retrieval
-- Managing temporary storage for processing
+## Future Enhancements
 
-### Knowledge
+1. **Enhanced Image Generation**:
+   - Add more customization options for verse images
+   - Implement AI-based image selection based on verse content
+   - Support for multiple image styles and formats
 
-Used for:
-- Providing Bible reference information
-- Storing and retrieving resource links
-- Managing cross-references
+2. **Advanced AI Features**:
+   - Implement more advanced AI features for deeper biblical analysis
+   - Add support for cross-referencing with other Bible passages
+   - Implement AI-generated study guides
 
-### GitHub MCP
+3. **User Interface Improvements**:
+   - Develop a web interface for managing Bible study sessions
+   - Add support for uploading audio recordings for transcription
+   - Implement a preview feature for verse images
 
-Used for:
-- Managing repository and version control
-- Automating CI/CD pipeline
-- Tracking issues and feature requests
+4. **Integration Enhancements**:
+   - Add integration with Bible APIs for verse lookup and cross-references
+   - Implement integration with popular Bible study tools
+   - Add support for exporting content to different formats
 
-## Logging and Debugging
+## Troubleshooting
 
-The application includes comprehensive logging:
+### Common Issues
 
-- **Backend Logging**: Structured JSON logs with different levels (DEBUG, INFO, ERROR)
-- **Frontend Logging**: Console logs and error boundaries
-- **MCP Server Logging**: Detailed logs for all MCP server interactions
+1. **Google Sheets API Authentication**:
+   - Ensure the service account JSON file is correctly formatted
+   - Verify that the Google Sheet is shared with the service account email
+   - Check that the Google Sheets API is enabled in the Google Cloud Console
 
-Log files are stored in the `logs` directory and rotated daily.
+2. **OpenRouter API Issues**:
+   - Verify that the API key is correct
+   - Check that the model names are correctly specified
+   - Ensure that you have sufficient credits for API calls
+
+3. **Image Generation Issues**:
+   - Ensure that Pillow is correctly installed
+   - Verify that the required fonts are available on your system
+   - Check that the output directories are writable
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- OpenRouter for providing AI capabilities
-- Pexels for image resources
-- Google for Sheets API
-- All MCP server providers for enhanced functionality
