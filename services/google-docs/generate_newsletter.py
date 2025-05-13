@@ -17,9 +17,9 @@ import pickle
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets.readonly',
-    'https://www.googleapis.com/auth/documents',
-    'https://www.googleapis.com/auth/drive'
+    'https://www.googleapis.com/auth/spreadsheets',  # Full access to spreadsheets
+    'https://www.googleapis.com/auth/documents',     # Full access to documents
+    'https://www.googleapis.com/auth/drive'          # Full access to drive
 ]
 
 def get_credentials():
@@ -131,9 +131,19 @@ def create_or_use_tab_in_document(doc_id, tab_title):
         for tab in tabs:
             if tab.get('title') == tab_title:
                 print(f"Found existing tab '{tab_title}' in document")
-                return tab.get('documentId')
+                tab_doc_id = tab.get('documentId')
 
-        # If we get here, no existing tab was found, so create a new one
+                # Check if we can access this document
+                try:
+                    tab_doc = docs_service.documents().get(documentId=tab_doc_id).execute()
+                    print(f"Successfully accessed existing tab document: {tab_doc.get('title')}")
+                    return tab_doc_id
+                except Exception as e:
+                    print(f"Error accessing existing tab document: {e}")
+                    print("Creating a new tab document instead...")
+                    break
+
+        # If we get here, no existing tab was found or accessible, so create a new one
         print(f"No existing tab found with title '{tab_title}', creating new tab...")
     except Exception as e:
         print(f"Error checking for existing tabs: {e}")
@@ -147,6 +157,20 @@ def create_or_use_tab_in_document(doc_id, tab_title):
     print(f"Created tab document with title: {tab_title}")
     print(f"Tab Document ID: {tab_doc_id}")
 
+    # Share the document with anyone who has the link
+    try:
+        drive_service.permissions().create(
+            fileId=tab_doc_id,
+            body={
+                'type': 'anyone',
+                'role': 'writer',
+                'allowFileDiscovery': False
+            }
+        ).execute()
+        print(f"Shared tab document with anyone who has the link")
+    except Exception as e:
+        print(f"Error sharing tab document: {e}")
+
     # Now we need to add this as a tab to the main document
     # This requires using the Drive API to update the document's properties
     try:
@@ -156,6 +180,11 @@ def create_or_use_tab_in_document(doc_id, tab_title):
         # Update the properties to include the new tab
         properties = file.get('properties', {})
         tabs = properties.get('tabs', [])
+
+        # Remove any existing tab with the same title
+        tabs = [tab for tab in tabs if tab.get('title') != tab_title]
+
+        # Add the new tab
         tabs.append({
             'title': tab_title,
             'documentId': tab_doc_id
@@ -468,6 +497,49 @@ def generate_newsletter(spreadsheet_id, row_index, target_doc_id=None):
     print(f"Newsletter document generated successfully: https://docs.google.com/document/d/{doc_id}/edit")
     return doc_id
 
+def update_existing_tab(doc_id, data):
+    """Update an existing tab document with the newsletter content."""
+    creds = get_credentials()
+    docs_service = build('docs', 'v1', credentials=creds)
+
+    # Get the document to find the end index
+    try:
+        document = docs_service.documents().get(documentId=doc_id).execute()
+        print(f"Successfully accessed document: {document.get('title')}")
+
+        # Clear the document content
+        end_index = document.get('body').get('content')[-1].get('endIndex')
+        if end_index > 1:
+            print(f"Clearing existing content in document {doc_id}...")
+            try:
+                docs_service.documents().batchUpdate(
+                    documentId=doc_id,
+                    body={
+                        'requests': [
+                            {
+                                'deleteContentRange': {
+                                    'range': {
+                                        'startIndex': 1,
+                                        'endIndex': end_index - 1
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ).execute()
+                print("Document content cleared successfully")
+            except Exception as e:
+                print(f"Error clearing document content: {e}")
+                print("Continuing with existing content...")
+
+        # Format the document with the newsletter content
+        format_document(doc_id, data)
+        print(f"Updated existing tab document: https://docs.google.com/document/d/{doc_id}/edit")
+        return True
+    except Exception as e:
+        print(f"Error accessing or updating document: {e}")
+        return False
+
 def main():
     """Main function to run the script."""
     # Get the spreadsheet ID from environment variable
@@ -482,8 +554,32 @@ def main():
     # Get the row index from command line argument or default to 0 (row 1)
     row_index = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 
-    # Generate the newsletter
-    generate_newsletter(spreadsheet_id, row_index, target_doc_id)
+    # Get the data from the Google Sheet
+    data = get_sheet_data(spreadsheet_id, 'Bible Studies!A1:Z')
+
+    if not data or row_index >= len(data):
+        print(f"No data found for row index {row_index}")
+        sys.exit(1)
+
+    row_data = data[row_index]
+
+    # Check if the row is ready for document generation
+    ready_status = row_data.get('Ready?', '').upper()
+    if ready_status != 'READY':
+        print(f"Row {row_index + 1} is not ready for document generation (status: {ready_status})")
+        sys.exit(1)
+
+    # Get the title from the Verses Covered column
+    title = row_data.get('Verses Covered', f'Bible Study - {datetime.now().strftime("%Y-%m-%d")}')
+
+    # Try to directly update the existing tab document
+    existing_tab_id = "1ajkbv0t3Ri6igCKBtR1H_0KGzc-HQCjICszJAfGqhSc"  # The ID of the existing tab document
+
+    if update_existing_tab(existing_tab_id, row_data):
+        print(f"Successfully updated existing tab document for '{title}'")
+    else:
+        print(f"Failed to update existing tab document, generating newsletter normally...")
+        generate_newsletter(spreadsheet_id, row_index, target_doc_id)
 
 if __name__ == "__main__":
     main()
