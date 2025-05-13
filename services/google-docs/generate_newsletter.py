@@ -106,8 +106,8 @@ def create_document(title):
 
     return document.get('documentId')
 
-def create_tab_in_document(doc_id, tab_title):
-    """Create a new tab in an existing Google Doc."""
+def create_or_use_tab_in_document(doc_id, tab_title):
+    """Create a new tab in an existing Google Doc or use an existing tab."""
     creds = get_credentials()
     docs_service = build('docs', 'v1', credentials=creds)
     drive_service = build('drive', 'v3', credentials=creds)
@@ -120,6 +120,25 @@ def create_tab_in_document(doc_id, tab_title):
         print(f"Error finding document: {e}")
         return None
 
+    # Check if a tab with this title already exists
+    try:
+        # Get the current document's properties
+        file = drive_service.files().get(fileId=doc_id, fields='properties').execute()
+        properties = file.get('properties', {})
+        tabs = properties.get('tabs', [])
+
+        # Look for an existing tab with the same title
+        for tab in tabs:
+            if tab.get('title') == tab_title:
+                print(f"Found existing tab '{tab_title}' in document")
+                return tab.get('documentId')
+
+        # If we get here, no existing tab was found, so create a new one
+        print(f"No existing tab found with title '{tab_title}', creating new tab...")
+    except Exception as e:
+        print(f"Error checking for existing tabs: {e}")
+        print("Continuing with creating a new tab...")
+
     # Create a new document for the tab content
     tab_doc = docs_service.documents().create(body={
         'title': tab_title
@@ -131,7 +150,7 @@ def create_tab_in_document(doc_id, tab_title):
     # Now we need to add this as a tab to the main document
     # This requires using the Drive API to update the document's properties
     try:
-        # First, get the current document's properties
+        # First, get the current document's properties again (in case they changed)
         file = drive_service.files().get(fileId=doc_id, fields='properties').execute()
 
         # Update the properties to include the new tab
@@ -199,54 +218,91 @@ def format_document(doc_id, data):
     document = docs_service.documents().get(documentId=doc_id).execute()
     end_index = document.get('body').get('content')[-1].get('endIndex')
 
+    # Clear the document content if it's not empty
+    if end_index > 1:
+        print(f"Clearing existing content in document {doc_id}...")
+        try:
+            docs_service.documents().batchUpdate(
+                documentId=doc_id,
+                body={
+                    'requests': [
+                        {
+                            'deleteContentRange': {
+                                'range': {
+                                    'startIndex': 1,
+                                    'endIndex': end_index - 1
+                                }
+                            }
+                        }
+                    ]
+                }
+            ).execute()
+            print("Document content cleared successfully")
+        except Exception as e:
+            print(f"Error clearing document content: {e}")
+            print("Continuing with existing content...")
+
+    # Get the document again to find the new end index
+    document = docs_service.documents().get(documentId=doc_id).execute()
+    end_index = document.get('body').get('content')[-1].get('endIndex')
+
     # Prepare the content for the document
     requests = []
 
-    # Only format the title if there's content in the document
-    if end_index > 1:
-        requests.extend([
-            # Format the title
-            {
-                'updateParagraphStyle': {
-                    'range': {
-                        'startIndex': 1,
-                        'endIndex': end_index
-                    },
-                    'paragraphStyle': {
-                        'alignment': 'CENTER',
-                        'lineSpacing': 115,
-                        'spaceAbove': {
-                            'magnitude': 0,
-                            'unit': 'PT'
-                        },
-                        'spaceBelow': {
-                            'magnitude': 20,
-                            'unit': 'PT'
-                        }
-                    },
-                    'fields': 'alignment,lineSpacing,spaceAbove,spaceBelow'
-                }
+    # Add the title
+    requests.append({
+        'insertText': {
+            'location': {
+                'index': 1
             },
-            {
-                'updateTextStyle': {
-                    'range': {
-                        'startIndex': 1,
-                        'endIndex': end_index
+            'text': data.get('Verses Covered', 'Bible Study')
+        }
+    })
+
+    # Format the title
+    requests.extend([
+        # Format the title
+        {
+            'updateParagraphStyle': {
+                'range': {
+                    'startIndex': 1,
+                    'endIndex': 1 + len(data.get('Verses Covered', 'Bible Study'))
+                },
+                'paragraphStyle': {
+                    'alignment': 'CENTER',
+                    'lineSpacing': 115,
+                    'spaceAbove': {
+                        'magnitude': 0,
+                        'unit': 'PT'
                     },
-                    'textStyle': {
-                        'fontSize': {
-                            'magnitude': 18,
-                            'unit': 'PT'
-                        },
-                        'weightedFontFamily': {
-                            'fontFamily': 'Arial'
-                        },
-                        'bold': True
-                    },
-                    'fields': 'fontSize,weightedFontFamily,bold'
-                }
+                    'spaceBelow': {
+                        'magnitude': 20,
+                        'unit': 'PT'
+                    }
+                },
+                'fields': 'alignment,lineSpacing,spaceAbove,spaceBelow'
             }
-        ])
+        },
+        {
+            'updateTextStyle': {
+                'range': {
+                    'startIndex': 1,
+                    'endIndex': 1 + len(data.get('Verses Covered', 'Bible Study'))
+                },
+                'textStyle': {
+                    'fontSize': {
+                        'magnitude': 18,
+                        'unit': 'PT'
+                    },
+                    'weightedFontFamily': {
+                        'fontFamily': 'Arial'
+                    },
+                    'bold': True
+                },
+                'fields': 'fontSize,weightedFontFamily,bold'
+            }
+        }
+    ])
 
     # Add a newline after the title
     requests.append({
@@ -378,18 +434,19 @@ def generate_newsletter(spreadsheet_id, row_index, target_doc_id=None):
     row_data = data[row_index]
 
     # Check if the row is ready for document generation
-    if row_data.get('Ready?', '').lower() != 'ready':
-        print(f"Row {row_index + 1} is not ready for document generation")
+    ready_status = row_data.get('Ready?', '').upper()
+    if ready_status != 'READY':
+        print(f"Row {row_index + 1} is not ready for document generation (status: {ready_status})")
         return
 
     # Get the title from the Verses Covered column
     title = row_data.get('Verses Covered', f'Bible Study - {datetime.now().strftime("%Y-%m-%d")}')
 
-    # If a target document ID is provided, create a tab in that document
+    # If a target document ID is provided, create or use a tab in that document
     if target_doc_id:
-        doc_id = create_tab_in_document(target_doc_id, title)
+        doc_id = create_or_use_tab_in_document(target_doc_id, title)
         if not doc_id:
-            print(f"Failed to create tab in document {target_doc_id}")
+            print(f"Failed to create or use tab in document {target_doc_id}")
             print("Creating standalone document instead...")
             doc_id = create_document(title)
     else:
