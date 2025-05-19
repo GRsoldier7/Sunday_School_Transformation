@@ -29,17 +29,42 @@ This project integrates with the following MCP servers:
    cd sunday-school-transformation
    ```
 
-2. Install dependencies:
+2. Run the setup script to configure your environment:
    ```bash
-   npm install
+   npm run setup
    ```
 
-3. Create a `.env.local` file:
-   ```bash
-   cp .env.local.example .env.local
-   ```
+   This script will:
+   - Create `.env` and `.env.local` files if they don't exist
+   - Install dependencies if needed
+   - Check for required API keys
+   - Verify port availability
+   - Create necessary directories
 
-4. Update the `.env.local` file with your MCP server API keys and configuration.
+3. Update the `.env.local` file with your API keys and other sensitive information.
+
+### Environment Configuration
+
+This project uses two environment files:
+
+1. `.env` - Contains default configuration values that are safe to commit to GitHub
+2. `.env.local` - Contains sensitive values (API keys, etc.) that should never be committed
+
+#### Setting Up Environment Variables
+
+1. The `.env` file is already included in the repository with safe default values
+2. Create a `.env.local` file for your sensitive values:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. Edit `.env.local` to add your API keys and other sensitive information
+
+#### Required API Keys
+
+Some MCP servers require API keys to function properly:
+
+- **OpenRouter/Claude**: Required for AI functionality
+- **GitHub**: Required for GitHub integration
 
 ### Port Configuration
 
@@ -49,6 +74,12 @@ You can manually scan ports using:
 
 ```bash
 npm run scan-ports
+```
+
+To automatically fix port conflicts:
+
+```bash
+npm run scan-ports:fix
 ```
 
 ### MCP Servers

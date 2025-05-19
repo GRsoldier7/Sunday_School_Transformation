@@ -2,7 +2,7 @@
 
 /**
  * MCP Server
- * 
+ *
  * This script starts a specific MCP server based on the provided name.
  * It handles configuration, port management, and server startup.
  */
@@ -21,12 +21,17 @@ if (fs.existsSync(envPath)) {
   console.warn('Warning: .env.local file not found. Using default values.');
 }
 
-// Get the server name from command line arguments
+// Get the server name and port from command line arguments
 const serverName = process.argv[2];
+const customPort = process.argv[3] ? parseInt(process.argv[3], 10) : null;
+
 if (!serverName) {
-  console.error('Error: Server name is required. Usage: node mcp-server.js <server-name>');
+  console.error('Error: Server name is required. Usage: node mcp-server.js <server-name> [port]');
   process.exit(1);
 }
+
+// Enable debug mode if set in environment
+const DEBUG_MODE = process.env.DEBUG_MODE === 'true';
 
 // MCP Server configurations
 const mcpServers = {
@@ -88,6 +93,14 @@ if (!serverConfig) {
   process.exit(1);
 }
 
+// Override port if provided as command line argument
+if (customPort) {
+  serverConfig.port = customPort;
+  if (DEBUG_MODE) {
+    console.log(`Using custom port ${customPort} for ${serverConfig.name}`);
+  }
+}
+
 // Check if the server is enabled
 if (!serverConfig.enabled) {
   console.warn(`Warning: ${serverConfig.name} is disabled in configuration. Starting anyway for testing.`);
@@ -104,21 +117,21 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
+
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
     return;
   }
-  
+
   // Handle health check endpoint
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', server: serverConfig.name }));
     return;
   }
-  
+
   // Handle API endpoints
   if (req.url.startsWith('/api/')) {
     // Check for API key if required
@@ -130,7 +143,7 @@ const server = http.createServer((req, res) => {
         return;
       }
     }
-    
+
     // Process the API request
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -142,7 +155,7 @@ const server = http.createServer((req, res) => {
     }));
     return;
   }
-  
+
   // Handle root endpoint
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -187,7 +200,7 @@ const server = http.createServer((req, res) => {
     `);
     return;
   }
-  
+
   // Handle 404
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
@@ -200,7 +213,7 @@ server.listen(serverConfig.port, () => {
   console.log(`Health check: http://localhost:${serverConfig.port}/health`);
   console.log(`API endpoint: http://localhost:${serverConfig.port}/api/status`);
   console.log(`API key required: ${serverConfig.requiresApiKey ? 'Yes' : 'No'}`);
-  
+
   if (serverConfig.requiresApiKey) {
     if (serverConfig.apiKey) {
       console.log('API key is configured');
@@ -208,7 +221,7 @@ server.listen(serverConfig.port, () => {
       console.warn('Warning: API key is required but not configured');
     }
   }
-  
+
   console.log('\nPress Ctrl+C to stop the server');
 });
 

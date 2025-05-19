@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "setup": "./scripts/setup-env.sh",
     "scan-ports": "node scripts/scan-ports.js",
+    "scan-ports:fix": "node scripts/scan-ports.js --auto-fix",
+    "check-env": "node scripts/check-env.js",
     "predev": "npm run scan-ports",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-
-    "start:mcp-servers": "node scripts/start-all-mcp-servers.js",
+    "start:mcp-servers": "scripts/start-mcp-servers.sh",
     "start:heroku-mcp": "node scripts/mcp-server.js heroku-mcp",
     "start:context7": "node scripts/mcp-server.js context7",
     "start:taskmaster": "node scripts/mcp-server.js taskmaster",
@@ -18,27 +20,28 @@
     "start:memory": "node scripts/mcp-server.js memory",
     "start:knowledge": "node scripts/mcp-server.js knowledge",
     "start:github-mcp": "node scripts/mcp-server.js github-mcp",
-
-    "dev:with-mcp": "concurrently \"npm run start:mcp-servers\" \"npm run dev\"",
-    "verify:mcp-servers": "node scripts/verify-mcp-servers.js"
+    "dev:with-mcp": "npm run check-env && concurrently \"npm run start:mcp-servers\" \"npm run dev\"",
+    "verify:mcp-servers": "node scripts/verify-mcp-servers.js",
+    "debug:mcp-servers": "scripts/start-mcp-servers.sh --debug"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.3.2",
+    "chalk": "^4.1.2",
     "dotenv": "^16.3.1",
-    "chalk": "^4.1.2"
+    "next": "15.3.2",
+    "pg": "^8.16.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "concurrently": "^8.2.2",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
-    "@eslint/eslintrc": "^3",
-    "concurrently": "^8.2.2"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
