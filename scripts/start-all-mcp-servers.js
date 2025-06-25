@@ -403,4 +403,4 @@ process.on('unhandledRejection', (reason, promise) => {
 main().catch((error) => {
   log(`Startup failed: ${error.message}`, 'error');
   process.exit(1);
-});
+}); 

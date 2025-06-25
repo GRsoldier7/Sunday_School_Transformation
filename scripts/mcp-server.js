@@ -504,4 +504,4 @@ process.on('SIGTERM', () => {
     log('Server stopped', 'success');
     process.exit(0);
   });
-});
+}); 
