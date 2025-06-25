@@ -20,7 +20,13 @@
     "start:github-mcp": "node scripts/mcp-server.js github-mcp",
 
     "dev:with-mcp": "concurrently \"npm run start:mcp-servers\" \"npm run dev\"",
-    "verify:mcp-servers": "node scripts/verify-mcp-servers.js"
+    "dev:full": "concurrently \"npm run start:mcp-servers\" \"npm run dev\" \"npm run verify:mcp-servers\"",
+    "verify:mcp-servers": "node scripts/verify-mcp-servers.js",
+    
+    "setup:env": "cp .env.local.example .env.local && echo 'Environment file created. Please update with your API keys.'",
+    "setup:dev": "npm install && npm run setup:env",
+    "clean": "rm -rf .next && rm -rf node_modules && npm install",
+    "reset": "npm run clean && npm run setup:env"
   },
   "dependencies": {
     "react": "^19.0.0",
